@@ -15,14 +15,18 @@ clock = pg.time.Clock()
 player_starting_lives = 5 #Don't change these, they might ruin your gameplay
 player_velocity = 5
 coin_starting_velocity = 10
-coin_acceleration = 0.5
-player_acceleration = 0.5 
+bomb_starting_velocity = 10
+coin_acceleration = 0.1
+player_acceleration = 0.1 
+bomb_acceleration = 0.5
 buffer_distance = 100
 score = 0
 player_lives = player_starting_lives
 coin_velocity = coin_starting_velocity
+bomb_velocity = bomb_starting_velocity
 linex = 64
 liney = 0
+
 # Set color
 green = (0, 255, 0)
 dark_green = (10, 50, 10)
@@ -55,6 +59,7 @@ continue_rect.center = (window_width // 2, window_height // 2 + 32)
 
 # Set sounds and music
 coin_sound = pg.mixer.Sound("coin_sound.wav")
+bomb_sound = pg.mixer.Sound("bomb_sound.mp3")
 miss_sound = pg.mixer.Sound("miss_sound.wav")
 miss_sound.set_volume(0.1)
 pg.mixer.music.load("ftd_background_music.wav")
@@ -67,6 +72,10 @@ coin_image = pg.image.load("coin.png")
 coin_rect = coin_image.get_rect()
 coin_rect.x = window_width + buffer_distance
 coin_rect.y = rn.randint(64, window_height - 32)
+bomb_image = pg.image.load("bomb.png")
+bomb_rect = bomb_image.get_rect()
+bomb_rect.x = window_width + buffer_distance
+bomb_rect.y = rn.randint(64, window_height - 32)
 # Main game loop:
 pg.mixer.music.play(-1, 0.0)
 running = True
@@ -82,6 +91,8 @@ while running:
     if (keys[pg.K_s] or keys[pg.K_DOWN]) and player_rect.bottom < window_height:
         player_rect.y += player_velocity
     #move the coin
+    if bomb_rect.colliderect(coin_rect):
+        bomb_rect.y -= 20
     if coin_rect.x < 0:
         #player missed the coin
         player_lives -= 1
@@ -91,6 +102,17 @@ while running:
     else:
         #move the coin
         coin_rect.x -= coin_velocity
+    if bomb_rect.x < 0:
+        #player missed the bomb
+        score += 1
+        coin_sound.play()
+        bomb_rect.x = window_width + buffer_distance
+        bomb_rect.y = rn.randint(64, window_height - 32)
+    else:
+        bomb_rect.x -= bomb_velocity
+
+        
+
     #Check if you touched the coin
     if player_rect.colliderect(coin_rect):
         score += 1
@@ -99,6 +121,14 @@ while running:
         player_velocity += player_acceleration
         coin_rect.x = window_width + buffer_distance
         coin_rect.y = rn.randint(64, window_height)
+    #Check if you touched the bomb
+    if player_rect.colliderect(bomb_rect):
+        player_lives -= 1
+        bomb_sound.play()
+        bomb_velocity += bomb_acceleration
+        bomb_rect.x = window_width + buffer_distance
+        bomb_rect.y = rn.randint(64, window_height)
+
     #Update the HUD
     score_text = font.render("Score: " + str(score), True, green, dark_green)
     lives_text = font.render("Lives: " + str(player_lives), True, green, dark_green)
@@ -131,7 +161,8 @@ while running:
     pg.draw.line(display_surface, white, (liney, linex), (window_width, linex), 2)
     display_surface.blit(player_image, player_rect)
     display_surface.blit(coin_image, coin_rect)
-   
+    display_surface.blit(bomb_image, bomb_rect)
+    
     # Update the display surface
     pg.display.update()
     # Tick the clock
